@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LinkedIn Job Push Config",
+  "type": "object",
+  "required": ["schedule", "filters"],
+  "properties": {
+    "schedule": {
+      "type": "object",
+      "required": ["time", "timezone"],
+      "properties": {
+        "time": {
+          "type": "string",
+          "pattern": "^[0-2][0-9]:[0-5][0-9]$",
+          "description": "Daily trigger time in HH:MM 24h format"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone, e.g. America/Toronto"
+        }
+      }
+    },
+    "filters": {
+      "type": "object",
+      "required": ["keywords", "country"],
+      "properties": {
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Job search keywords"
+        },
+        "country": {
+          "type": "string",
+          "description": "Target country for job search"
+        },
+        "excludeProvinces": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Province/state codes to exclude"
+        },
+        "excludeLocationKeywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Location keywords to exclude (case-insensitive)"
+        },
+        "maxResults": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 30,
+          "description": "Max jobs to fetch per run"
+        },
+        "maxSend": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10,
+          "description": "Max jobs to include in each Telegram message"
+        },
+        "maxExperienceYears": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "description": "Exclude jobs requiring more than this many years of experience. Omit to disable."
+        }
+      }
+    }
+  }
+}

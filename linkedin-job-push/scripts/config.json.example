@@ -1,0 +1,24 @@
+{
+  "schedule": {
+    "time": "09:00",
+    "timezone": "America/Toronto"
+  },
+  "filters": {
+    "keywords": ["React", "JavaScript"],
+    "country": "Canada",
+    "excludeProvinces": ["QC", "AB"],
+    "excludeLocationKeywords": [
+      "Quebec",
+      "QC",
+      "Montreal",
+      "Montréal",
+      "Alberta",
+      "AB",
+      "Calgary",
+      "Edmonton"
+    ],
+    "maxResults": 30,
+    "maxSend": 10,
+    "maxExperienceYears": 3
+  }
+}
