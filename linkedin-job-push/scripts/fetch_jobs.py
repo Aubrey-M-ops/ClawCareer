@@ -8,6 +8,8 @@ Usage:
   python3 fetch_jobs.py --heartbeat  # only fetch if current time matches schedule
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -192,7 +194,7 @@ def should_run_now(config: dict) -> bool:
     """Check if current time matches the configured schedule (within ±5 minutes)."""
     schedule = config.get("schedule", {})
     target_time = schedule.get("time", "")
-    timezone_str = schedule.get("timezone", "UTC")
+    timezone_str = schedule.get("timezone", "America/Toronto")
 
     if not target_time:
         # No schedule configured — always run

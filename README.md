@@ -50,7 +50,7 @@ For detailed features and how the heartbeat trigger works, see [Features and Arc
 | Requirement       | Version                            |
 | ----------------- | ---------------------------------- |
 | OpenClaw | >= 2026.2.x (with heartbeat support) |
-| Python | >= 3.10 |
+| Python | >= 3.8 |
 | Telegram Bot API | — |
 
 ## Security

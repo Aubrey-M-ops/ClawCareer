@@ -56,7 +56,7 @@ Wait for the user to confirm before proceeding. Do NOT continue to the next step
 
 Ask the user these questions **one at a time** — wait for each answer before asking the next question. If the user provides a valid answer, move on. If the answer is unclear, ask for clarification before proceeding.
 
-Each question shows a default value in brackets. If the user sends a space (` `) or just whitespace, use the default value and move to the next question. Questions without a default (marked `[required]`) must be answered explicitly — a space is not accepted for these.
+Each question shows a default value in brackets. To use the default, the user should copy and send the default value shown. Questions without a default (marked `[required]`) must be answered explicitly.
 
 **Question 1:** What time should the job search run daily? (HH:MM, 24h format) [`09:00`]
 

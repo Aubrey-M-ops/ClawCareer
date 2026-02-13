@@ -8,14 +8,17 @@ Usage:
   python3 push_jobs.py --dry-run    # filter + dedup + print (no Telegram)
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
+import pytz
 import requests
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -186,7 +189,8 @@ def deduplicate(jobs: list[dict], state: dict) -> list[dict]:
 
 def format_telegram_message(jobs: list[dict], keyword_str: str) -> str:
     """Format jobs into a Telegram-friendly message (HTML parse mode)."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    tz = pytz.timezone("America/Toronto")
+    now = datetime.now(tz).strftime("%Y-%m-%d %H:%M %Z")
     lines = [
         f"<b>LinkedIn Jobs Daily Push</b>",
         f"<i>{now}</i>",
@@ -320,7 +324,7 @@ def main():
     for job in new_jobs:
         seen.add(job["id"])
     state["seen_job_ids"] = list(seen)
-    state["last_run"] = datetime.now(timezone.utc).isoformat()
+    state["last_run"] = datetime.now(pytz.timezone("America/Toronto")).isoformat()
     save_state(state)
     print(f"State updated. Total seen jobs: {len(seen)}")
 
