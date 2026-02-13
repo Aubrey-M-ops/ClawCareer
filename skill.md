@@ -18,22 +18,42 @@ Tell the user:
 
 ## 1) Ask user for configuration (interactive)
 
-Ask the user these questions in one message:
+Ask the user these questions **one at a time** — wait for each answer before asking the next question. If the user provides a valid answer, move on. If the answer is unclear, ask for clarification before proceeding.
 
-1. **Daily trigger time** (HH:MM, 24h format). Example: `09:00`
-2. **Timezone** (IANA format). Example: `America/Toronto`
-3. **Job search keywords** (comma-separated). Example: `React, JavaScript, Frontend`
-4. **Target country**. Example: `Canada`
-5. **Excluded provinces/states** (comma-separated, or "none"). Example: `QC, AB`
-6. **Excluded location keywords** (comma-separated, or "none"). Example: `Quebec, Montreal, Alberta, Calgary`
-7. **Max years of experience** (exclude jobs requiring more than this, or "none" to disable). Default: `3`
-8. **Max results to fetch per run**. Default: `30`
-9. **Max jobs to send per Telegram message**. Default: `10`
-10. **Telegram bot token** (`TELEGRAM_BOT_TOKEN`)
-11. **Telegram chat ID** (`TELEGRAM_CHAT_ID`)
+Each question shows a default value in brackets. If the user sends a space (` `) or just whitespace, use the default value and move to the next question. Questions without a default (marked `[required]`) must be answered explicitly — a space is not accepted for these.
 
-If the user does not know their Telegram chat ID, tell them:
+**Question 1:** What time should the job search run daily? (HH:MM, 24h format) [`09:00`]
 
+**Question 2:** What is your timezone? (IANA format) [`America/Toronto`]
+
+**Question 3:** What job search keywords do you want to use? (comma-separated) [`React, JavaScript, Frontend`]
+
+**Question 4:** What country are you targeting? [`Canada`]
+
+**Question 5:** Any provinces/states to exclude? (comma-separated, or "none") [`none`]
+
+**Question 6:** Any location keywords to exclude? (comma-separated, or "none") [`none`]
+
+**Question 7:** Max years of experience — exclude jobs requiring more than this? (number, or "none" to disable) [`3`]
+
+**Question 8:** Max results to fetch per run? [`30`]
+
+**Question 9:** Max jobs to send per Telegram message? [`10`]
+
+**Question 10:** What is your Telegram bot token? [required]
+
+Before asking, tell the user how to get one:
+
+> To get a bot token:
+> 1. Open Telegram and search for **@BotFather**.
+> 2. Send `/newbot` and follow the prompts (give your bot a name and username).
+> 3. BotFather will reply with a token like `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`. That is your bot token.
+
+**Question 11:** What is your Telegram chat ID? [required]
+
+Before asking, tell the user how to find it:
+
+> To find your chat ID:
 > 1. Send any message to your bot in Telegram.
 > 2. Open this URL in a browser (replace `<TOKEN>` with your bot token):
 >    `https://api.telegram.org/bot<TOKEN>/getUpdates`
@@ -41,45 +61,81 @@ If the user does not know their Telegram chat ID, tell them:
 
 ## 2) Install the skill folder from GitHub
 
-Using the shell tool, execute:
+Tell the user each sub-step as you go, so they know what is happening.
+
+### 2.1) Create target directory
+
+Tell the user: "Creating skill directory..."
 
 ```bash
-# Create target directory
 mkdir -p ~/.openclaw/skills/linkedin-job-push
-
-# Clone the repo to a temp directory
-TMPDIR=$(mktemp -d)
-git clone --depth 1 https://github.com/you/openclaw-linkedin-job-push.git "$TMPDIR/repo"
-
-# Copy only the inner skill folder
-cp -r "$TMPDIR/repo/linkedin-job-push/"* ~/.openclaw/skills/linkedin-job-push/
-
-# Clean up
-rm -rf "$TMPDIR"
 ```
 
-If `git` is not available, download and extract the zip instead:
+Tell the user: "Skill directory ready at `~/.openclaw/skills/linkedin-job-push`."
+
+### 2.2) Clone the repository
+
+Tell the user: "Cloning the skill repository from GitHub..."
+
+```bash
+TMPDIR=$(mktemp -d)
+git clone --depth 1 https://github.com/you/openclaw-linkedin-job-push.git "$TMPDIR/repo"
+```
+
+If `git` is not available, tell the user: "git not found, downloading zip instead..." and use:
 
 ```bash
 TMPDIR=$(mktemp -d)
 curl -L -o "$TMPDIR/repo.zip" https://github.com/you/openclaw-linkedin-job-push/archive/refs/heads/main.zip
 unzip -q "$TMPDIR/repo.zip" -d "$TMPDIR"
-cp -r "$TMPDIR/openclaw-linkedin-job-push-main/linkedin-job-push/"* ~/.openclaw/skills/linkedin-job-push/
+```
+
+Tell the user: "Repository downloaded successfully."
+
+### 2.3) Copy skill files
+
+Tell the user: "Copying skill files into place..."
+
+```bash
+cp -r "$TMPDIR/repo/linkedin-job-push/"* ~/.openclaw/skills/linkedin-job-push/
+```
+
+(If using the zip fallback, use the zip-extracted path instead.)
+
+Tell the user: "Skill files copied."
+
+### 2.4) Clean up
+
+```bash
 rm -rf "$TMPDIR"
 ```
 
-Verify these files exist:
+### 2.5) Verify installation
+
+Tell the user: "Verifying installed files..."
+
+Check that these files exist:
 - `~/.openclaw/skills/linkedin-job-push/SKILL.md`
 - `~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py`
 - `~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py`
 
-If any file is missing, report the error and stop.
+If all files are present, tell the user: "All skill files verified successfully."
+
+If any file is missing, tell the user which file is missing and stop — do NOT proceed to later steps.
 
 ## 3) Install Python dependencies
 
 ```bash
-pip3 install requests beautifulsoup4 pytz --quiet
+python3 -m pip install requests beautifulsoup4 pytz --quiet
 ```
+
+After installation, verify the modules are importable:
+
+```bash
+python3 -c "import requests, bs4, pytz; print('All dependencies OK')"
+```
+
+If this fails, report the error and stop — do NOT proceed to later steps.
 
 ## 4) Generate user-editable config files
 

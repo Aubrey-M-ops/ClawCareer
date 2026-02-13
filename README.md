@@ -1,17 +1,17 @@
-# LinkedIn Job Push → Telegram (OpenClaw Skill)
+# 🦞 ClawCareer — LinkedIn Job Push → Telegram (OpenClaw Skill)
 
 > **v1** — Currently supports **LinkedIn → Telegram** only. More job sources and notification channels planned for future versions.
 
-Automatically fetch LinkedIn job listings daily and push them to your Telegram chat via an OpenClaw skill.
+ClawCareer is an OpenClaw skill that helps your AI agent monitor LinkedIn job listings and send filtered opportunities directly to your Telegram chat — hands-free, daily.
 
 ## Features
 
-- Scrapes LinkedIn public job search (no API key needed)
-- Fetches full job descriptions for accurate filtering
-- Filters by location (exclude provinces/keywords)
-- Filters by experience requirements (e.g., skip jobs asking for 5+ years)
-- Deduplicates across runs (never sends the same job twice)
-- Schedule-aware heartbeat: skill checks its own schedule internally, **does not modify `openclaw.json`**
+- **One-command install** — just give your OpenClaw agent the skill URL and it walks you through setup, one question at a time
+- **LinkedIn public scraping** — no API key or LinkedIn account needed; fetches job cards + full descriptions from the guest endpoint
+- **Smart filtering** — exclude by province/state, location keywords, and max years of experience (regex-based, supports ranges like "3-5 years" and words like "five years")
+- **Telegram delivery** — sends formatted HTML job listings to your Telegram chat, auto-splits long messages to fit the 4096-char limit
+- **Heartbeat-driven scheduling** — hooks into OpenClaw's heartbeat as a passive listener; the skill checks its own `config.json` schedule (±5 min window) and exits silently when it's not time, **does not modify `openclaw.json`**
+- **Fully user-editable config** — all settings live in plain JSON files (`config.json` + `secrets.json`) that can be changed anytime without re-running the installer
 
 ## Quick Start (One Command)
 
@@ -27,39 +27,23 @@ The agent will guide you through:
 3. Setting up Telegram credentials
 4. Registering the skill in `HEARTBEAT.md`
 
-## Project Structure
 
-```
-BOOTSTRAP.md                  # One-click install script (Read this URL)
-
-linkedin-job-push/            # The actual OpenClaw skill
-  SKILL.md                    # Skill description
-  scripts/
-    fetch_jobs.py             # Scrapes LinkedIn job cards + descriptions
-    push_jobs.py              # Filters, deduplicates, sends to Telegram
-    config.json.example       # Template config
-    config.schema.json        # JSON Schema for config validation
-    state.json.example        # Template state file
-
-docs/
-  Mannual Installation.md     # Step-by-step manual setup guide
-```
 
 ## Configuration
 
 ### config.json
 
-| Field | Description |
-|-------|-------------|
-| `schedule.time` | Daily trigger time (HH:MM, 24h) |
-| `schedule.timezone` | IANA timezone |
-| `filters.keywords` | Job search keywords |
-| `filters.country` | Target country |
-| `filters.excludeProvinces` | Province/state codes to skip |
-| `filters.excludeLocationKeywords` | Location keywords to skip |
-| `filters.maxExperienceYears` | Exclude jobs requiring more than N years (omit to disable) |
-| `filters.maxResults` | Max jobs to fetch per run (default: 30) |
-| `filters.maxSend` | Max jobs per Telegram message (default: 10) |
+| Field | Description | Default |
+|-------|-------------|---------|
+| `schedule.time` | Daily trigger time (HH:MM, 24h format) | `09:00` |
+| `schedule.timezone` | IANA timezone (e.g., `America/Toronto`) | `UTC` |
+| `filters.keywords` | Job search keywords (array of strings) | — (required) |
+| `filters.country` | Target country for job search | `Canada` |
+| `filters.excludeProvinces` | Province/state codes to skip (e.g., `["QC", "AB"]`) | `[]` |
+| `filters.excludeLocationKeywords` | Location keywords to skip (e.g., `["Quebec", "Montreal"]`) | `[]` |
+| `filters.maxExperienceYears` | Exclude jobs requiring more than N years; omit or set `null` to disable | `3` |
+| `filters.maxResults` | Max jobs to fetch per run | `30` |
+| `filters.maxSend` | Max jobs to send per Telegram message | `10` |
 
 ### secrets.json
 
@@ -70,14 +54,28 @@ docs/
 
 Alternatively, set these as environment variables.
 
-## Daily Automation
+## How It Triggers
 
-This skill does **not** modify `openclaw.json`. It assumes heartbeat is already enabled by the user. The skill controls its own schedule internally:
+This skill runs as a **hook on the OpenClaw runtime's heartbeat**. It does **not** have its own scheduler or cron job — instead, it piggybacks on the heartbeat that OpenClaw already runs at a regular interval (e.g., every 10 minutes).
 
-1. Heartbeat periodically calls `fetch_jobs.py --heartbeat`
+Each time the heartbeat fires, it executes the commands listed in `~/.openclaw/HEARTBEAT.md`. This skill registers itself there, so the flow is:
+
+1. OpenClaw heartbeat fires (e.g., every 10 min) → calls `fetch_jobs.py --heartbeat`
 2. The script reads `schedule.time` and `schedule.timezone` from `config.json`
-3. If current time matches (within ±5 min), it fetches jobs and continues
-4. Otherwise it exits silently — zero side effects
+3. If the current time matches the configured schedule (within ±5 min), it fetches jobs and proceeds to send them
+4. Otherwise it exits silently — zero side effects, zero network requests
+
+This design means the skill does **not** modify `openclaw.json` or manage its own timer. It assumes heartbeat is already enabled by the user. The skill only controls **when** it actually does work, by comparing the current time against its own config.
+
+
+
+## Compatibility
+
+| Requirement | Version |
+|-------------|---------|
+| OpenClaw | >= 2026.2.x (with heartbeat support) |
+| Python | >= 3.10 |
+| Telegram Bot API |
 
 ## Security
 
