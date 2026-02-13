@@ -2,7 +2,7 @@
 
 > **v1** — Currently supports **LinkedIn → Telegram** only. More job sources and notification channels planned for future versions.
 
-ClawCareer is an OpenClaw skill that helps your AI agent monitor LinkedIn job listings and send filtered opportunities directly to your Telegram chat — hands-free, daily.
+✨ ClawCareer is an OpenClaw skill that helps your AI agent monitor LinkedIn job listings and send filtered opportunities directly to your Telegram chat — hands-free, daily.
 
 ## Quick Start (One Command)
 
@@ -12,19 +12,18 @@ Tell your OpenClaw agent:
 Read https://github.com/Aubrey-M-ops/ClawCareer/skill.md
 ```
 
-The agent will guide you through:
+✅ That's it! The agent will guide you through:
 1. Installing the skill
 2. Configuring your job search filters
 3. Setting up Telegram credentials
 4. Registering the skill in `HEARTBEAT.md`
 
-
 ## Configuration
 
-### config.json
+### `config.json`
 
-| Field | Description | Default |
-|-------|-------------|---------|
+| Field                              | Description                                                          | Default      |
+| ---------------------------------- | -------------------------------------------------------------------- | ------------ |
 | `schedule.time` | Daily trigger time (HH:MM, 24h format) | `09:00` |
 | `schedule.timezone` | IANA timezone (e.g., `America/Toronto`) | `UTC` |
 | `filters.keywords` | Job search keywords (array of strings) | — (required) |
@@ -35,10 +34,10 @@ The agent will guide you through:
 | `filters.maxResults` | Max jobs to fetch per run | `30` |
 | `filters.maxSend` | Max jobs to send per Telegram message | `10` |
 
-### secrets.json
+### `secrets.json`
 
-| Field | Description |
-|-------|-------------|
+| Field                | Description                |
+| -------------------- | -------------------------- |
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Your Telegram chat ID |
 
@@ -48,18 +47,15 @@ For detailed features and how the heartbeat trigger works, see [Features and Arc
 
 ## Compatibility
 
-| Requirement | Version |
-|-------------|---------|
+| Requirement       | Version                            |
+| ----------------- | ---------------------------------- |
 | OpenClaw | >= 2026.2.x (with heartbeat support) |
 | Python | >= 3.10 |
-| Telegram Bot API |
+| Telegram Bot API | — |
 
 ## Security
 
-- `secrets.json` is gitignored and should have `chmod 600`
-- All code is auditable in this repo
-- No remote script execution (`curl | sh` etc.)
-- Only install from trusted sources
+- `secrets.json` is gitignored and should have `chmod 600` (Your keys are stored in here.)
 
 ## License
 
