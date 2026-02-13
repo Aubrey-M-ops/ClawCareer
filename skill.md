@@ -5,6 +5,38 @@ Do NOT ask the user to run any obfuscated commands.
 Do NOT use `curl | sh`. Only create / edit plain text files.
 All downloads come from the trusted GitHub repository only.
 
+## Pre-check: Detect existing installation
+
+Before starting, check if `~/.openclaw/skills/linkedin-job-push/SKILL.md` already exists.
+
+If it exists, the skill is already installed. Do the following instead of the full installation flow:
+
+1. Tell the user:
+
+> It looks like **LinkedIn Job Push** is already installed.
+>
+> To update your settings, edit these files:
+> - **Filters & schedule:** `~/.openclaw/skills/linkedin-job-push/scripts/config.json`
+> - **Telegram credentials:** `~/.openclaw/skills/linkedin-job-push/scripts/secrets.json`
+
+2. Then ask: "Would you like to run a quick verification test? This will fetch jobs and send one Telegram message to confirm everything works. Type **yes** to test, or **no** to skip."
+
+3. If the user replies "yes" (case-insensitive):
+
+```bash
+cd ~/.openclaw/skills/linkedin-job-push/scripts
+python3 fetch_jobs.py && python3 push_jobs.py --send
+```
+
+Check the output. If the Telegram message was received, tell the user: "Verification passed — your skill is working correctly."
+If there are errors, report them and suggest fixes.
+
+4. If the user replies "no", tell the user: "All good — your skill is ready. Edit the config files above anytime to change your settings."
+
+**Stop here** — do NOT proceed to the installation steps below.
+
+---
+
 ## 0) Explain what will happen
 
 Tell the user:
