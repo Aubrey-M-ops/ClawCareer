@@ -9,7 +9,7 @@
 Tell your OpenClaw agent:
 
 ```
-Read https://github.com/Aubrey-M-ops/ClawCareer/skill.md
+Read https://raw.githubusercontent.com/Aubrey-M-ops/ClawCareer/master/skill.md
 ```
 
 ✅ That's it! The agent will guide you through:

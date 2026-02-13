@@ -16,6 +16,10 @@ Tell the user:
 > 4. Register the skill in `HEARTBEAT.md` (does NOT modify `openclaw.json`)
 > 5. Run a quick test (optional)
 
+Then ask: "Type **yes** to continue, or ask any questions first."
+
+Wait for the user to confirm before proceeding. Do NOT continue to the next step until the user replies "yes" (case-insensitive).
+
 ## 1) Ask user for configuration (interactive)
 
 Ask the user these questions **one at a time** — wait for each answer before asking the next question. If the user provides a valid answer, move on. If the answer is unclear, ask for clarification before proceeding.
