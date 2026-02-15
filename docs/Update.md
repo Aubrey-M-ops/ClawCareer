@@ -20,7 +20,7 @@ Read https://aubrey-m-ops.github.io/ClawCareer/skill.md and follow the "Updating
 
 ## What Gets Updated
 
-- ✅ Script files (`fetch_jobs.py`, `push_jobs.py`, `filter.py`)
+- ✅ Script files (`fetch_jobs.py`, `push_jobs.py`)
 - ✅ Documentation files (`SKILL.md`, `HEARTBEAT.md`)
 - 🔒 **Preserved**: Your `config.json`, `secrets.json`, and `state.json`
 

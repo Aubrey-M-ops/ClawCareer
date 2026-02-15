@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - LinkedIn 400 Bad Request errors when fetching job descriptions
 - Job ID extraction now properly extracts only numeric IDs instead of full URL slugs
+- Removed non-existent filter.py references from update documentation
 
 ## [1.0.0] - 2026-02-15
 

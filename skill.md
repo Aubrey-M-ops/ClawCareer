@@ -356,7 +356,6 @@ Tell the user: "Updating script files (your config will be preserved)..."
 ```bash
 cp "$TMPDIR/repo/linkedin-job-push/scripts/fetch_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
 cp "$TMPDIR/repo/linkedin-job-push/scripts/push_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
-cp "$TMPDIR/repo/linkedin-job-push/scripts/filter.py" ~/.openclaw/skills/linkedin-job-push/scripts/
 ```
 
 **For non-git version, replace `$TMPDIR/repo` with `$TMPDIR/ClawCareer-main`**
