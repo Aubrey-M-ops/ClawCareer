@@ -14,30 +14,31 @@ If it exists, the skill is already installed. Do the following instead of the fu
 1. Tell the user:
 
 > It looks like **LinkedIn Job Push** is already installed.
->
-> To update your settings, edit these files:
-> - **Filters & schedule:** `~/.openclaw/skills/linkedin-job-push/scripts/config.json`
-> - **Telegram credentials:** `~/.openclaw/skills/linkedin-job-push/scripts/secrets.json`
 
-2. Then ask: "Would you like to run a quick verification test? This will fetch jobs and send one Telegram message to confirm everything works. Type **yes** to test, or **no** to skip."
+2. Ask: "Would you like to **reinstall** it from scratch? This will overwrite the current installation. Type **yes** to reinstall, or **no** to keep the current setup."
 
-3. If the user replies "yes" (case-insensitive):
+3. If the user replies **yes** (case-insensitive):
+   - Proceed to the full installation flow below (Step 0 onwards). The existing files will be overwritten.
 
-```bash
-cd ~/.openclaw/skills/linkedin-job-push/scripts
-python3 fetch_jobs.py && python3 push_jobs.py --send
-```
+4. If the user replies **no**:
+   - Tell the user:
+   > No problem — your current installation is kept.
+   >
+   > To update your settings, edit these files:
+   > - **Filters & schedule:** `~/.openclaw/skills/linkedin-job-push/scripts/config.json`
+   > - **Telegram credentials:** `~/.openclaw/skills/linkedin-job-push/scripts/secrets.json`
+   >
+   > To run a quick verification test:
+   > ```
+   > cd ~/.openclaw/skills/linkedin-job-push/scripts
+   > python3 fetch_jobs.py && python3 push_jobs.py --send
+   > ```
 
-Check the output. If the Telegram message was received, tell the user: "Verification passed — your skill is working correctly."
-If there are errors, report them and suggest fixes.
-
-4. If the user replies "no", tell the user: "All good — your skill is ready. Edit the config files above anytime to change your settings."
-
-**Stop here** — do NOT proceed to the installation steps below.
+   **Stop here** — do NOT proceed to the installation steps below.
 
 ---
 
-## 0) Explain what will happen
+## 0) Explain what will happen — then proceed immediately
 
 Tell the user:
 
@@ -45,12 +46,10 @@ Tell the user:
 > 1. Install a skill folder into `~/.openclaw/skills/linkedin-job-push`
 > 2. Ask for required settings (daily time, timezone, Telegram token + chat_id)
 > 3. Generate config files (user-editable) in the skill folder
-> 4. Register the skill in `HEARTBEAT.md` (does NOT modify `openclaw.json`)
+> 4. Register the skill's `HEARTBEAT.md` inside the skill directory (does NOT modify `openclaw.json`)
 > 5. Run a quick test (optional)
 
-Then ask: "Type **yes** to continue, or ask any questions first."
-
-Wait for the user to confirm before proceeding. Do NOT continue to the next step until the user replies "yes" (case-insensitive).
+Do NOT ask for confirmation. Proceed directly to Step 1 after showing this summary.
 
 ## 1) Ask user for configuration (interactive)
 
@@ -225,49 +224,39 @@ If `scripts/state.json` does not exist, create it:
 }
 ```
 
-## 5) Register skill in HEARTBEAT.md
+## 5) Register heartbeat and memory tracking
 
 > **Important:** Do NOT modify `~/.openclaw/openclaw.json`.
 > The user's heartbeat cadence is their own — we only hook into it.
 > Schedule logic lives entirely inside the skill's Python code.
 
-### 5.1) Verify heartbeat is enabled
+### Step 1: Add to your heartbeat file
 
-Check that `~/.openclaw/openclaw.json` exists and contains a `"heartbeat"` key.
+Add this to your `HEARTBEAT.md` (or equivalent periodic task list):
 
-- If yes: proceed. Do NOT change any of its values.
-- If no: inform the user that OpenClaw heartbeat must be enabled for
-  automatic daily runs. Show them how to enable it manually:
-
+```markdown
+## LinkedIn Job Push (daily)
+If due for a LinkedIn Job Push check (based on `lastCheck` in `memory/linkedin-job-push-state.json`):
+1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
+2. Then:    `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
+3. Update `lastCheck` in `memory/linkedin-job-push-state.json` to the current ISO 8601 timestamp
 ```
-To enable heartbeat, add to ~/.openclaw/openclaw.json:
+
+The skill reads its own schedule from `config.json` and decides internally whether it is time to run. If not, it exits silently.
+
+### Step 2: Track when you last checked
+
+Create or update your state in memory (e.g. `memory/linkedin-job-push-state.json`):
+
+```json
 {
-  "heartbeat": {
-    "every": "10m"
-  }
+  "lastCheck": null,
+  "schedule": "<USER_TIME> <USER_TIMEZONE>",
+  "keywords": ["<keyword1>", "<keyword2>"]
 }
 ```
 
-Do NOT write this file for the user automatically.
-
-### 5.2) Create/update HEARTBEAT.md
-
-Create `~/.openclaw/HEARTBEAT.md` (or append if it already exists —
-do not overwrite other skills' sections):
-
-```md
-## LinkedIn Job Push
-
-This heartbeat runs periodically.
-
-Run the LinkedIn Job Push skill:
-1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
-2. Then:    `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
-
-The skill reads its own schedule from
-`~/.openclaw/skills/linkedin-job-push/scripts/config.json`
-and decides internally whether it is time to run. If not, it exits silently.
-```
+Update the `lastCheck` timestamp each time you check. This prevents over-checking.
 
 ## 6) Smoke test (optional but recommended)
 
@@ -285,7 +274,7 @@ python3 push_jobs.py --send
 
 Check for errors. If Telegram message was received, confirm success.
 
-## 8) Print final summary
+## 7) Print final summary
 
 Show the user:
 
