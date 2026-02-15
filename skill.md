@@ -114,14 +114,14 @@ Tell the user: "Cloning the skill repository from GitHub..."
 
 ```bash
 TMPDIR=$(mktemp -d)
-git clone --depth 1 https://github.com/you/openclaw-linkedin-job-push.git "$TMPDIR/repo"
+git clone --depth 1 https://github.com/Aubrey-M-ops/ClawCareer.git "$TMPDIR/repo"
 ```
 
 If `git` is not available, tell the user: "git not found, downloading zip instead..." and use:
 
 ```bash
 TMPDIR=$(mktemp -d)
-curl -L -o "$TMPDIR/repo.zip" https://github.com/you/openclaw-linkedin-job-push/archive/refs/heads/main.zip
+curl -L -o "$TMPDIR/repo.zip" https://github.com/Aubrey-M-ops/ClawCareer/archive/refs/heads/main.zip
 unzip -q "$TMPDIR/repo.zip" -d "$TMPDIR"
 ```
 

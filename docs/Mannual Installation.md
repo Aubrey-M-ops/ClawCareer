@@ -11,8 +11,8 @@
 
 ```bash
 # Clone this repo
-git clone https://github.com/you/openclaw-linkedin-job-push.git
-cd openclaw-linkedin-job-push
+git clone https://github.com/Aubrey-M-ops/ClawCareer.git
+cd ClawCareer
 
 # Copy the skill to OpenClaw
 mkdir -p ~/.openclaw/skills/linkedin-job-push
