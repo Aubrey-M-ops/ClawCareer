@@ -298,3 +298,127 @@ To run manually (skips schedule check):
 To update keywords/filters:
   Edit ~/.openclaw/skills/linkedin-job-push/scripts/config.json
 ```
+
+---
+
+## Updating
+
+If the user wants to update an existing installation to the latest version, follow these steps.
+
+### Pre-check: Verify existing installation
+
+First, check if `~/.openclaw/skills/linkedin-job-push/SKILL.md` exists.
+
+- If it does NOT exist, tell the user: "LinkedIn Job Push is not installed yet. Would you like to install it?" and stop here.
+- If it exists, proceed with the update flow below.
+
+### Step 1: Backup existing configuration
+
+Tell the user: "Backing up your configuration files..."
+
+```bash
+cd ~/.openclaw/skills/linkedin-job-push/scripts
+cp config.json config.json.backup
+cp secrets.json secrets.json.backup
+cp state.json state.json.backup 2>/dev/null || true
+```
+
+Tell the user: "Configuration backed up successfully."
+
+### Step 2: Download latest code
+
+Tell the user: "Downloading latest version from GitHub..."
+
+**If git is available:**
+
+```bash
+TMPDIR=$(mktemp -d)
+git clone --depth 1 https://github.com/Aubrey-M-ops/ClawCareer.git "$TMPDIR/repo"
+```
+
+**If git is NOT available:**
+
+```bash
+TMPDIR=$(mktemp -d)
+curl -L -o "$TMPDIR/repo.zip" https://github.com/Aubrey-M-ops/ClawCareer/archive/refs/heads/main.zip
+unzip -q "$TMPDIR/repo.zip" -d "$TMPDIR"
+# For non-git version, the path is "$TMPDIR/ClawCareer-main" instead of "$TMPDIR/repo"
+```
+
+Tell the user: "Latest code downloaded."
+
+### Step 3: Update script files (preserving configuration)
+
+Tell the user: "Updating script files (your config will be preserved)..."
+
+**For git version:**
+
+```bash
+cp "$TMPDIR/repo/linkedin-job-push/scripts/fetch_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
+cp "$TMPDIR/repo/linkedin-job-push/scripts/push_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
+cp "$TMPDIR/repo/linkedin-job-push/scripts/filter.py" ~/.openclaw/skills/linkedin-job-push/scripts/
+```
+
+**For non-git version, replace `$TMPDIR/repo` with `$TMPDIR/ClawCareer-main`**
+
+Tell the user: "Scripts updated."
+
+### Step 4: Update documentation
+
+Tell the user: "Updating documentation files..."
+
+```bash
+cp "$TMPDIR/repo/linkedin-job-push/SKILL.md" ~/.openclaw/skills/linkedin-job-push/
+cp "$TMPDIR/repo/linkedin-job-push/HEARTBEAT.md" ~/.openclaw/skills/linkedin-job-push/ 2>/dev/null || true
+```
+
+*For non-git version, replace `$TMPDIR/repo` with `$TMPDIR/ClawCareer-main`*
+
+Tell the user: "Documentation updated."
+
+### Step 5: Clean up
+
+```bash
+rm -rf "$TMPDIR"
+```
+
+Tell the user: "Temporary files cleaned up."
+
+### Step 6: Verify update
+
+Tell the user: "Verifying the update..."
+
+```bash
+cd ~/.openclaw/skills/linkedin-job-push/scripts
+python3 fetch_jobs.py
+python3 push_jobs.py --dry-run
+```
+
+If this runs successfully and shows job listings, tell the user:
+
+```
+✅ Update complete!
+
+Your configuration files were preserved:
+  - config.json (your filters and schedule)
+  - secrets.json (your Telegram credentials)
+  - state.json (previously seen jobs)
+
+Backup files created (just in case):
+  - config.json.backup
+  - secrets.json.backup
+  - state.json.backup
+
+To remove backups:
+  cd ~/.openclaw/skills/linkedin-job-push/scripts
+  rm -f *.backup
+```
+
+If the verification fails, tell the user about the error and suggest restoring from backup:
+
+```bash
+cd ~/.openclaw/skills/linkedin-job-push/scripts
+mv config.json.backup config.json
+mv secrets.json.backup secrets.json
+mv state.json.backup state.json
+```

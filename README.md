@@ -18,6 +18,19 @@ Read https://aubrey-m-ops.github.io/ClawCareer/skill.md and follow the instructi
 3. Setting up Telegram credentials
 4. Registering the skill in `HEARTBEAT.md`
 
+## Quick Update (One Command)
+
+Already have ClawCareer installed? Update with one command:
+
+```
+Read https://aubrey-m-ops.github.io/ClawCareer/skill.md and follow the "Updating" section to update the skill
+```
+
+✅ Your OpenClaw agent will handle the update and preserve your configuration files.
+
+For more details, see [Update Guide](docs/Update.md).
+
+
 ## Configuration
 
 ### `config.json`

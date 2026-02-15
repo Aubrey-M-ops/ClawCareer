@@ -37,6 +37,11 @@ HEADERS = {
     ),
     "Accept-Language": "en-US,en;q=0.9",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://www.linkedin.com/jobs/search/",
+    "DNT": "1",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
 }
 
 # LinkedIn geoId mapping for common countries
@@ -110,24 +115,6 @@ def parse_job_card(card) -> dict | None:
 
 LINKEDIN_JOB_DETAIL_URL = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
 
-
-def fetch_job_description(job_id: str) -> str:
-    """Fetch the full description for a single job by ID."""
-    url = LINKEDIN_JOB_DETAIL_URL.format(job_id=job_id)
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=30)
-        resp.raise_for_status()
-    except requests.RequestException as e:
-        print(f"  Warning: failed to fetch description for {job_id}: {e}", file=sys.stderr)
-        return ""
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    desc_el = soup.find("div", class_="description__text")
-    if not desc_el:
-        desc_el = soup.find("div", class_="show-more-less-html__markup")
-    return desc_el.get_text(separator=" ", strip=True) if desc_el else ""
-
-
 def fetch_jobs(config: dict) -> list[dict]:
     """Fetch job listings from LinkedIn based on config filters."""
     filters = config.get("filters", {})
@@ -176,16 +163,6 @@ def fetch_jobs(config: dict) -> list[dict]:
 
     # Trim to max_results
     all_jobs = all_jobs[:max_results]
-
-    # Fetch full description for each job
-    print(f"Fetching descriptions for {len(all_jobs)} jobs...")
-    for i, job in enumerate(all_jobs):
-        job["description"] = fetch_job_description(job["id"])
-        if job["description"]:
-            print(f"  [{i+1}/{len(all_jobs)}] Got description for: {job['title'][:50]}")
-        else:
-            print(f"  [{i+1}/{len(all_jobs)}] No description for: {job['title'][:50]}")
-        time.sleep(1)  # polite delay
 
     return all_jobs
 

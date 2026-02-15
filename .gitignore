@@ -4,6 +4,7 @@ secrets.json
 # Runtime state
 state.json
 jobs.json
+config.json
 
 # Python
 __pycache__/
