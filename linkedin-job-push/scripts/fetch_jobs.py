@@ -19,30 +19,49 @@ import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
+import random
+
 import pytz
 import requests
 from bs4 import BeautifulSoup
+
+from constants import LINKEDIN_JOBS_SEARCH_URL, LINKEDIN_JOB_POSTING_URL, LINKEDIN_JOBS_REFERER
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = SCRIPT_DIR / "config.json"
 JOBS_OUTPUT_PATH = SCRIPT_DIR / "jobs.json"
 
-LINKEDIN_JOBS_URL = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
+        "Chrome/132.0.0.0 Safari/537.36"
     ),
     "Accept-Language": "en-US,en;q=0.9",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://www.linkedin.com/jobs/search/",
+    "Referer": LINKEDIN_JOBS_REFERER,
     "DNT": "1",
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
 }
+
+
+def _get(url: str, retries: int = 3) -> requests.Response:
+    """GET with exponential backoff on 429."""
+    for attempt in range(retries):
+        resp = requests.get(url, headers=HEADERS, timeout=30)
+        if resp.status_code == 429:
+            wait = (2 ** attempt) * 5 + random.uniform(0, 3)
+            print(f"  Rate limited (429), retrying in {wait:.1f}s...", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        return resp
+    raise requests.HTTPError(f"Failed after {retries} retries: {url}")
 
 # LinkedIn geoId mapping for common countries
 COUNTRY_GEO_IDS = {
@@ -61,7 +80,8 @@ COUNTRY_GEO_IDS = {
 
 def load_config() -> dict:
     if not CONFIG_PATH.exists():
-        print(f"Error: config.json not found at {CONFIG_PATH}", file=sys.stderr)
+        print(
+            f"Error: config.json not found at {CONFIG_PATH}", file=sys.stderr)
         sys.exit(1)
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -81,7 +101,7 @@ def build_search_url(keywords: list[str], country: str, start: int = 0) -> str:
     if geo_id:
         params["geoId"] = geo_id
 
-    return f"{LINKEDIN_JOBS_URL}?{urllib.parse.urlencode(params)}"
+    return f"{LINKEDIN_JOBS_SEARCH_URL}?{urllib.parse.urlencode(params)}"
 
 
 def parse_job_card(card) -> dict | None:
@@ -113,7 +133,49 @@ def parse_job_card(card) -> dict | None:
     }
 
 
-LINKEDIN_JOB_DETAIL_URL = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
+def fetch_job_description(job_url: str) -> str:
+    """Fetch the full job description from LinkedIn job page URL."""
+    if not job_url:
+        return ""
+
+    # Extract numeric job ID from URL (e.g. "...at-stripe-4294958460" -> "4294958460")
+    job_id = job_url.rstrip("/").split("-")[-1]
+    if not job_id.isdigit():
+        return ""
+
+    try:
+        # Use LinkedIn's guest job posting API — no login required, no authwall
+        api_url = LINKEDIN_JOB_POSTING_URL.format(job_id=job_id)
+        resp = _get(api_url)
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Primary: guest API returns this structure
+        desc_el = soup.find("div", {"class": "show-more-less-html__markup"})
+        if desc_el:
+            return desc_el.get_text(strip=True, separator=" ")
+
+        # Fallback: JSON-LD structured data (schema.org JobPosting)
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                data = json.loads(script.string or "")
+                if data.get("@type") == "JobPosting" and data.get("description"):
+                    desc_soup = BeautifulSoup(
+                        data["description"], "html.parser")
+                    return desc_soup.get_text(strip=True, separator=" ")
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+        # Last resort: new LinkedIn design (requires login)
+        desc_el = soup.find(attrs={"data-testid": "expandable-text-box"})
+        if desc_el:
+            return desc_el.get_text(strip=True, separator=" ")
+
+        return ""
+    except requests.RequestException as e:
+        print(
+            f"  Warning: failed to fetch description for job {job_id}: {e}", file=sys.stderr)
+        return ""
+
 
 def fetch_jobs(config: dict) -> list[dict]:
     """Fetch job listings from LinkedIn based on config filters."""
@@ -128,7 +190,7 @@ def fetch_jobs(config: dict) -> list[dict]:
 
     all_jobs = []
     start = 0
-    batch_size = 25  # LinkedIn returns ~25 per page
+    batch_size = 10  # LinkedIn guest API returns 10 per page
 
     print(f"Fetching jobs for: {', '.join(keywords)} in {country}")
 
@@ -136,14 +198,15 @@ def fetch_jobs(config: dict) -> list[dict]:
         url = build_search_url(keywords, country, start)
 
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=30)
-            resp.raise_for_status()
+            resp = _get(url)
         except requests.RequestException as e:
             print(f"Request error at start={start}: {e}", file=sys.stderr)
             break
 
         soup = BeautifulSoup(resp.text, "html.parser")
         cards = soup.find_all("div", class_="base-card")
+
+        print(('card>>>'), len(cards))
 
         if not cards:
             break
@@ -163,6 +226,14 @@ def fetch_jobs(config: dict) -> list[dict]:
 
     # Trim to max_results
     all_jobs = all_jobs[:max_results]
+
+    # Fetch descriptions for each job
+    print(f"\nFetching job descriptions for {len(all_jobs)} jobs...")
+    for i, job in enumerate(all_jobs, 1):
+        print(
+            f"  [{i}/{len(all_jobs)}] Fetching description for: {job['title'][:50]}...")
+        job["description"] = fetch_job_description(job["url"])
+        time.sleep(3)  # polite delay between description fetches
 
     return all_jobs
 
