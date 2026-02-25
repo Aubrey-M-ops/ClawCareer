@@ -236,10 +236,20 @@ Add this to your `HEARTBEAT.md` (or equivalent periodic task list):
 
 ```markdown
 ## LinkedIn Job Push (daily)
-If due for a LinkedIn Job Push check (based on `lastCheck` in `memory/linkedin-job-push-state.json`):
+This heartbeat runs periodically.
+
+Run the LinkedIn Job Push skill:
+
 1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
-2. Then:    `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
-3. Update `lastCheck` in `memory/linkedin-job-push-state.json` to the current ISO 8601 timestamp
+2. **Only if** the fetch script actually ran (didn't exit with "Not scheduled time"), then run:
+   `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
+
+> ⏳ **Note:** `fetch_jobs.py` fetches full job descriptions one by one with rate-limit delays.
+> For 30 jobs this takes roughly **1–3 minutes**. Do not interrupt — progress is printed to terminal.
+
+The skill reads its own schedule from
+`~/.openclaw/skills/linkedin-job-push/scripts/config.json`
+and decides internally whether it is time to run. If the fetch exits silently, skip the push step
 ```
 
 The skill reads its own schedule from `config.json` and decides internally whether it is time to run. If not, it exits silently.
@@ -264,7 +274,13 @@ Ask the user:
 
 > Do you want to run a quick test now? This will fetch jobs and send a test message to your Telegram.
 
-If yes:
+If yes, **first warn the user:**
+
+> ⏳ **Heads up — this will take 1–3 minutes.**
+> The script fetches up to `maxResults` jobs, then retrieves the full description for each one individually (with a short delay between requests to avoid being rate-limited by LinkedIn). For 30 jobs, expect roughly 90–120 seconds total.
+> You'll see live progress in the terminal.
+
+Then run:
 
 ```bash
 cd ~/.openclaw/skills/linkedin-job-push/scripts
@@ -294,6 +310,7 @@ To change schedule:
 To run manually (skips schedule check):
   cd ~/.openclaw/skills/linkedin-job-push/scripts
   python3 fetch_jobs.py && python3 push_jobs.py --send
+  (⏳ expect 1–3 min depending on maxResults — progress is shown in terminal)
 
 To update keywords/filters:
   Edit ~/.openclaw/skills/linkedin-job-push/scripts/config.json
