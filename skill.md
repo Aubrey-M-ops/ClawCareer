@@ -243,6 +243,7 @@ Run the LinkedIn Job Push skill:
 1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
 2. **Only if** the fetch script actually ran (didn't exit with "Not scheduled time"), then run:
    `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
+3. **Always** (regardless of whether the script ran): update `lastCheck` in `memory/linkedin-job-push-state.json` to the current timestamp.
 
 > ⏳ **Note:** `fetch_jobs.py` fetches full job descriptions one by one with rate-limit delays.
 > For 30 jobs this takes roughly **1–3 minutes**. Do not interrupt — progress is printed to terminal.
