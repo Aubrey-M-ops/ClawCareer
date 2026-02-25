@@ -374,6 +374,8 @@ Tell the user: "Updating script files (your config will be preserved)..."
 ```bash
 cp "$TMPDIR/repo/linkedin-job-push/scripts/fetch_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
 cp "$TMPDIR/repo/linkedin-job-push/scripts/push_jobs.py" ~/.openclaw/skills/linkedin-job-push/scripts/
+cp "$TMPDIR/repo/linkedin-job-push/scripts/constants.py" ~/.openclaw/skills/linkedin-job-push/scripts/
+cp -r "$TMPDIR/repo/linkedin-job-push/scripts/util" ~/.openclaw/skills/linkedin-job-push/scripts/
 ```
 
 **For non-git version, replace `$TMPDIR/repo` with `$TMPDIR/ClawCareer-main`**
@@ -393,7 +395,46 @@ cp "$TMPDIR/repo/linkedin-job-push/HEARTBEAT.md" ~/.openclaw/skills/linkedin-job
 
 Tell the user: "Documentation updated."
 
-### Step 5: Clean up
+### Step 5: Re-register heartbeat and update memory tracking
+
+Tell the user: "Updating heartbeat instructions and memory state..."
+
+Open your `HEARTBEAT.md` and replace the existing `## LinkedIn Job Push (daily)` section with:
+
+```markdown
+## LinkedIn Job Push (daily)
+This heartbeat runs periodically.
+
+Run the LinkedIn Job Push skill:
+
+1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
+2. **Only if** the fetch script actually ran (didn't exit with "Not scheduled time"), then run:
+   `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
+3. **Always** (regardless of whether the script ran): update `lastCheck` in `memory/linkedin-job-push-state.json` to the current timestamp.
+
+> ⏳ **Note:** `fetch_jobs.py` fetches full job descriptions one by one with rate-limit delays.
+> For 30 jobs this takes roughly **1–3 minutes**. Do not interrupt — progress is printed to terminal.
+
+The skill reads its own schedule from
+`~/.openclaw/skills/linkedin-job-push/scripts/config.json`
+and decides internally whether it is time to run. If the fetch exits silently, skip the push step
+```
+
+Then ensure `memory/linkedin-job-push-state.json` exists and has the `lastCheck` field:
+
+```json
+{
+  "lastCheck": null,
+  "schedule": "<TIME> <TIMEZONE>",
+  "keywords": ["<keyword1>", "<keyword2>"]
+}
+```
+
+If the file already exists, preserve the existing `lastCheck` value — only add the field if it is missing.
+
+Tell the user: "Heartbeat and memory tracking updated."
+
+### Step 7: Clean up
 
 ```bash
 rm -rf "$TMPDIR"
@@ -401,7 +442,7 @@ rm -rf "$TMPDIR"
 
 Tell the user: "Temporary files cleaned up."
 
-### Step 6: Verify update
+### Step 8: Verify update
 
 Tell the user: "Verifying the update..."
 
