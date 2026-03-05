@@ -44,6 +44,7 @@ For more details, see [Update Guide](docs/Update.md).
 | `filters.excludeProvinces` | Province/state codes to skip (e.g., `["QC", "AB"]`) | `[]` |
 | `filters.excludeLocationKeywords` | Location keywords to skip (e.g., `["Quebec", "Montreal"]`) | `[]` |
 | `filters.maxExperienceYears` | Exclude jobs requiring more than N years; omit or set `null` to disable | `3` |
+| `filters.excludeKeyWords` | Keywords to exclude (case-insensitive); checked against title at search stage and title+description at content stage (e.g., `["Senior", "II", "Mercor"]`) | `[]` |
 | `filters.maxResults` | Max jobs to fetch per run | `30` |
 | `filters.maxSend` | Max jobs to send per Telegram message | `10` |
 
