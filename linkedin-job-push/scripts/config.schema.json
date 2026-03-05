@@ -62,6 +62,11 @@
           "minimum": 0,
           "maximum": 30,
           "description": "Exclude jobs requiring more than this many years of experience. Omit to disable."
+        },
+        "excludeKeyWords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords to exclude (case-insensitive). Checked against title at search stage, and against title+description at content stage."
         }
       }
     }

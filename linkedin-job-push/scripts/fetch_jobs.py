@@ -26,6 +26,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from constants import LINKEDIN_JOBS_SEARCH_URL, LINKEDIN_JOB_POSTING_URL, LINKEDIN_JOBS_REFERER
+from util.filter import filter_by_exclude_keywords
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = SCRIPT_DIR / "config.json"
@@ -214,7 +215,9 @@ def fetch_jobs(config: dict) -> list[dict]:
         for card in cards:
             job = parse_job_card(card)
             if job and job["id"]:
-                all_jobs.append(job)
+                excluded = filter_by_exclude_keywords([job], config, title_only=True)
+                if excluded:
+                    all_jobs.append(job)
 
         print(f"  Fetched {len(cards)} cards (total so far: {len(all_jobs)})")
 

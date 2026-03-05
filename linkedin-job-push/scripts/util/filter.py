@@ -123,6 +123,32 @@ def filter_by_experience(jobs: list[dict], max_years: int | None) -> list[dict]:
     return filtered
 
 
+def filter_by_exclude_keywords(jobs: list[dict], config: dict, *, title_only: bool = False) -> list[dict]:
+    """Exclude jobs whose title (or title+description) contains any excludeKeyWords.
+
+    Args:
+        title_only: If True, only check the job title (used at card-parse time
+                    before descriptions are fetched). If False, check title+description.
+    """
+    exclude_kws = [k.lower() for k in config.get("filters", {}).get("excludeKeyWords", [])]
+    if not exclude_kws:
+        return jobs
+
+    filtered = []
+    for job in jobs:
+        if title_only:
+            text = job.get("title", "").lower()
+        else:
+            text = f"{job.get('title', '')} {job.get('description', '')}".lower()
+
+        matched = next((kw for kw in exclude_kws if kw in text), None)
+        if matched:
+            print(f"  Excluded (keyword '{matched}'): {job['title'][:60]}")
+            continue
+        filtered.append(job)
+    return filtered
+
+
 def deduplicate(jobs: list[dict], state: dict) -> list[dict]:
     """Remove jobs that have already been sent."""
     seen = set(state.get("seen_job_ids", []))

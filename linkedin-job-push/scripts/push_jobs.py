@@ -22,7 +22,7 @@ import pytz
 import requests
 
 from constants import TELEGRAM_SEND_MESSAGE_URL
-from util.filter import deduplicate, filter_by_experience, filter_by_keywords, filter_by_location
+from util.filter import deduplicate, filter_by_exclude_keywords, filter_by_experience, filter_by_keywords, filter_by_location
 from util.formatter import format_telegram_message, split_message
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -122,6 +122,10 @@ def main():
     filtered = filter_by_experience(filtered, max_exp)
     if max_exp is not None:
         print(f"After experience filter (≤{max_exp}yr): {len(filtered)} jobs remain")
+
+    # Filter by exclude keywords (title + description)
+    filtered = filter_by_exclude_keywords(filtered, config)
+    print(f"After exclude-keyword filter: {len(filtered)}/{len(jobs)} jobs remain")
 
     # Deduplicate
     new_jobs = deduplicate(filtered, state)
