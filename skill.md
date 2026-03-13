@@ -28,6 +28,8 @@ If it exists, the skill is already installed. Do the following instead of the fu
    > - **Filters & schedule:** `~/.openclaw/skills/linkedin-job-push/scripts/config.json`
    > - **Telegram credentials:** `~/.openclaw/skills/linkedin-job-push/scripts/secrets.json`
    >
+   > The daily schedule is controlled by the cron job in `~/.openclaw/cron/jobs.json` (look for the "LinkedIn Job Push" entry). To change the run time, update `schedule.expr` and `schedule.tz` there, or ask the agent to update the cron job for you.
+   >
    > To run a quick verification test:
    > ```
    > cd ~/.openclaw/skills/linkedin-job-push/scripts
@@ -46,7 +48,7 @@ Tell the user:
 > 1. Install a skill folder into `~/.openclaw/skills/linkedin-job-push`
 > 2. Ask for required settings (daily time, timezone, Telegram token + chat_id)
 > 3. Generate config files (user-editable) in the skill folder
-> 4. Register the skill's `HEARTBEAT.md` inside the skill directory (does NOT modify `openclaw.json`)
+> 4. Register a daily cron job in `~/.openclaw/cron/jobs.json` at your chosen time
 > 5. Run a quick test (optional)
 
 Do NOT ask for confirmation. Proceed directly to Step 1 after showing this summary.
@@ -224,40 +226,95 @@ If `scripts/state.json` does not exist, create it:
 }
 ```
 
-## 5) Register heartbeat and memory tracking
+## 5) Register cron job
+
+Register a daily cron job in `~/.openclaw/cron/jobs.json` so the skill runs automatically at the user's chosen time.
 
 > **Important:** Do NOT modify `~/.openclaw/openclaw.json`.
-> The user's heartbeat cadence is their own — we only hook into it.
-> Schedule logic lives entirely inside the skill's Python code.
 
-### Step 1: Add to your heartbeat file
+Run the following Python script to register the cron job (replace `<USER_TIME>` and `<USER_TIMEZONE>` with the values from Step 1):
 
-Add this to your `HEARTBEAT.md` (or equivalent periodic task list):
+```python
+import json, uuid, time
+from pathlib import Path
 
-```markdown
-## LinkedIn Job Push (daily)
-This heartbeat runs periodically.
+user_time = "<USER_TIME>"        # e.g. "10:00"
+user_tz   = "<USER_TIMEZONE>"   # e.g. "America/Toronto"
 
-Run the LinkedIn Job Push skill:
+hour, minute = map(int, user_time.split(":"))
+cron_expr = f"{minute} {hour} * * *"
 
-1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
-2. **Only if** the fetch script actually ran (didn't exit with "Not scheduled time"), then run:
-   `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
-3. **Always** (regardless of whether the script ran): update `lastCheck` in `memory/linkedin-job-push-state.json` to the current timestamp.
+jobs_path = Path.home() / ".openclaw/cron/jobs.json"
+if jobs_path.exists():
+    data = json.loads(jobs_path.read_text())
+else:
+    data = {"version": 1, "jobs": []}
 
-> ⏳ **Note:** `fetch_jobs.py` fetches full job descriptions one by one with rate-limit delays.
-> For 30 jobs this takes roughly **1–3 minutes**. Do not interrupt — progress is printed to terminal.
+# Remove any existing LinkedIn Job Push entry to avoid duplicates
+data["jobs"] = [
+    j for j in data["jobs"]
+    if "linkedin job push" not in j.get("name", "").lower()
+]
 
-The skill reads its own schedule from
-`~/.openclaw/skills/linkedin-job-push/scripts/config.json`
-and decides internally whether it is time to run. If the fetch exits silently, skip the push step
+now_ms = int(time.time() * 1000)
+new_job = {
+    "id": str(uuid.uuid4()),
+    "agentId": "main",
+    "name": f"LinkedIn Job Push - Daily {user_time}",
+    "enabled": True,
+    "createdAtMs": now_ms,
+    "updatedAtMs": now_ms,
+    "schedule": {
+        "kind": "cron",
+        "expr": cron_expr,
+        "tz": user_tz
+    },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+        "kind": "agentTurn",
+        "message": (
+            "Execute LinkedIn Job Push:\n"
+            "1. Run: python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py\n"
+            "2. Wait for completion (may take 1-3 minutes)\n"
+            "3. Run: python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send\n"
+            "4. Update memory/linkedin-job-push-state.json with current timestamp\n"
+            "5. Report: number of jobs fetched, filtered, and sent"
+        ),
+        "timeoutSeconds": 300
+    },
+    "delivery": {
+        "mode": "announce"
+    }
+}
+
+data["jobs"].append(new_job)
+jobs_path.write_text(json.dumps(data, indent=2))
+print(f"Cron job registered: {new_job['name']} ({cron_expr} {user_tz})")
 ```
 
-The skill reads its own schedule from `config.json` and decides internally whether it is time to run. If not, it exits silently.
+After running, confirm the output shows "Cron job registered" with the correct time and timezone.
 
-### Step 2: Track when you last checked
+To verify the cron job was added, run:
 
-Create or update your state in memory (e.g. `memory/linkedin-job-push-state.json`):
+```bash
+python3 -c "
+import json
+from pathlib import Path
+data = json.loads((Path.home() / '.openclaw/cron/jobs.json').read_text())
+for j in data['jobs']:
+    if 'linkedin job push' in j.get('name','').lower():
+        print(f\"Found: {j['name']}\")
+        print(f\"  Schedule: {j['schedule']['expr']} ({j['schedule']['tz']})\")
+        print(f\"  Enabled:  {j['enabled']}\")
+"
+```
+
+If nothing is printed, the registration failed — re-run the script above before proceeding.
+
+### Initialize memory state
+
+Create or update `memory/linkedin-job-push-state.json`:
 
 ```json
 {
@@ -267,7 +324,7 @@ Create or update your state in memory (e.g. `memory/linkedin-job-push-state.json
 }
 ```
 
-Update the `lastCheck` timestamp each time you check. This prevents over-checking.
+If the file already exists, preserve the existing `lastCheck` value — only add missing fields.
 
 ## 6) Smoke test (optional but recommended)
 
@@ -291,6 +348,20 @@ python3 push_jobs.py --send
 
 Check for errors. If Telegram message was received, confirm success.
 
+Then show the user their active cron jobs by running:
+
+```bash
+python3 -c "
+import json
+from pathlib import Path
+data = json.loads((Path.home() / '.openclaw/cron/jobs.json').read_text())
+print(f'Active cron jobs ({len(data[\"jobs\"])} total):')
+for j in data['jobs']:
+    status = 'enabled' if j['enabled'] else 'disabled'
+    print(f\"  [{status}] {j['name']} — {j['schedule']['expr']} ({j['schedule']['tz']})\")
+"
+```
+
 ## 7) Print final summary
 
 Show the user:
@@ -303,12 +374,15 @@ Config files (editable):
   ~/.openclaw/skills/linkedin-job-push/scripts/secrets.json  (chmod 600)
 
 Daily schedule: <TIME> <TIMEZONE>
-(The skill checks its own schedule — openclaw.json was NOT modified)
+Cron job registered in: ~/.openclaw/cron/jobs.json
+(openclaw.json was NOT modified)
 
 To change schedule:
-  Edit config.json → "schedule.time" and "schedule.timezone"
+  1. Edit config.json → "schedule.time" and "schedule.timezone"
+  2. Ask the agent to re-register the cron job, or manually update
+     the "expr" and "tz" fields in ~/.openclaw/cron/jobs.json
 
-To run manually (skips schedule check):
+To run manually:
   cd ~/.openclaw/skills/linkedin-job-push/scripts
   python3 fetch_jobs.py && python3 push_jobs.py --send
   (⏳ expect 1–3 min depending on maxResults — progress is shown in terminal)
@@ -388,51 +462,92 @@ Tell the user: "Updating documentation files..."
 
 ```bash
 cp "$TMPDIR/repo/linkedin-job-push/SKILL.md" ~/.openclaw/skills/linkedin-job-push/
-cp "$TMPDIR/repo/linkedin-job-push/HEARTBEAT.md" ~/.openclaw/skills/linkedin-job-push/ 2>/dev/null || true
 ```
 
 *For non-git version, replace `$TMPDIR/repo` with `$TMPDIR/ClawCareer-main`*
 
 Tell the user: "Documentation updated."
 
-### Step 5: Re-register heartbeat and update memory tracking
+### Step 5: Re-register cron job and update memory tracking
 
-Tell the user: "Updating heartbeat instructions and memory state..."
+Tell the user: "Updating cron job and memory state..."
 
-Open your `HEARTBEAT.md` and replace the existing `## LinkedIn Job Push (daily)` section with:
+Read the schedule from the preserved `config.json`:
 
-```markdown
-## LinkedIn Job Push (daily)
-This heartbeat runs periodically.
-
-Run the LinkedIn Job Push skill:
-
-1. Execute: `python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py --heartbeat`
-2. **Only if** the fetch script actually ran (didn't exit with "Not scheduled time"), then run:
-   `python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send`
-3. **Always** (regardless of whether the script ran): update `lastCheck` in `memory/linkedin-job-push-state.json` to the current timestamp.
-
-> ⏳ **Note:** `fetch_jobs.py` fetches full job descriptions one by one with rate-limit delays.
-> For 30 jobs this takes roughly **1–3 minutes**. Do not interrupt — progress is printed to terminal.
-
-The skill reads its own schedule from
-`~/.openclaw/skills/linkedin-job-push/scripts/config.json`
-and decides internally whether it is time to run. If the fetch exits silently, skip the push step
+```bash
+python3 -c "
+import json
+from pathlib import Path
+cfg = json.loads((Path.home() / '.openclaw/skills/linkedin-job-push/scripts/config.json').read_text())
+s = cfg.get('schedule', {})
+print(s.get('time', '10:00'), s.get('timezone', 'America/Toronto'))
+"
 ```
 
-Then ensure `memory/linkedin-job-push-state.json` exists and has the `lastCheck` field:
+Then re-register the cron job using those values (replace `<TIME>` and `<TIMEZONE>` with the output above):
 
-```json
-{
-  "lastCheck": null,
-  "schedule": "<TIME> <TIMEZONE>",
-  "keywords": ["<keyword1>", "<keyword2>"]
+```python
+import json, uuid, time
+from pathlib import Path
+
+user_time = "<TIME>"       # from config.json
+user_tz   = "<TIMEZONE>"  # from config.json
+
+hour, minute = map(int, user_time.split(":"))
+cron_expr = f"{minute} {hour} * * *"
+
+jobs_path = Path.home() / ".openclaw/cron/jobs.json"
+if jobs_path.exists():
+    data = json.loads(jobs_path.read_text())
+else:
+    data = {"version": 1, "jobs": []}
+
+# Remove existing LinkedIn Job Push entry
+existing = next(
+    (j for j in data["jobs"] if "linkedin job push" in j.get("name", "").lower()),
+    None
+)
+data["jobs"] = [
+    j for j in data["jobs"]
+    if "linkedin job push" not in j.get("name", "").lower()
+]
+
+now_ms = int(time.time() * 1000)
+new_job = {
+    "id": existing["id"] if existing else str(uuid.uuid4()),
+    "agentId": "main",
+    "name": f"LinkedIn Job Push - Daily {user_time}",
+    "enabled": True,
+    "createdAtMs": existing["createdAtMs"] if existing else now_ms,
+    "updatedAtMs": now_ms,
+    "schedule": {"kind": "cron", "expr": cron_expr, "tz": user_tz},
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+        "kind": "agentTurn",
+        "message": (
+            "Execute LinkedIn Job Push:\n"
+            "1. Run: python3 ~/.openclaw/skills/linkedin-job-push/scripts/fetch_jobs.py\n"
+            "2. Wait for completion (may take 1-3 minutes)\n"
+            "3. Run: python3 ~/.openclaw/skills/linkedin-job-push/scripts/push_jobs.py --send\n"
+            "4. Update memory/linkedin-job-push-state.json with current timestamp\n"
+            "5. Report: number of jobs fetched, filtered, and sent"
+        ),
+        "timeoutSeconds": 300
+    },
+    "delivery": {"mode": "announce"}
 }
+if existing:
+    new_job["state"] = existing.get("state", {})
+
+data["jobs"].append(new_job)
+jobs_path.write_text(json.dumps(data, indent=2))
+print(f"Cron job updated: {new_job['name']} ({cron_expr} {user_tz})")
 ```
 
-If the file already exists, preserve the existing `lastCheck` value — only add the field if it is missing.
+Then ensure `memory/linkedin-job-push-state.json` exists and has the `lastCheck` field. If the file already exists, preserve the existing `lastCheck` value — only add missing fields.
 
-Tell the user: "Heartbeat and memory tracking updated."
+Tell the user: "Cron job and memory tracking updated."
 
 ### Step 7: Clean up
 
