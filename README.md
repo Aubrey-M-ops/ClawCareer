@@ -1,3 +1,5 @@
+
+
 # 🦞 ClawCareer — LinkedIn Job Push → Telegram (OpenClaw Skill)
 
 > **v1** — Currently supports **LinkedIn → Telegram** only. More job sources and notification channels planned for future versions.
@@ -16,7 +18,7 @@ Read https://aubrey-m-ops.github.io/ClawCareer/skill.md and follow the instructi
 1. Installing the skill
 2. Configuring your job search filters
 3. Setting up Telegram credentials
-4. Registering the skill in `HEARTBEAT.md`
+4. Registering the skill's daily cron job in `~/.openclaw/cron/jobs.json`
 
 ## Quick Update (One Command)
 
